@@ -97,6 +97,7 @@ public class GalleryCategoryServiceImpl implements GalleryCategoryService {
         }
         GalleryCategoryDO categoryDO = new GalleryCategoryDO();
         categoryDO.setId(id);
+        categoryDO.setCategoryCode(request.getCategoryCode());
         categoryDO.setCategoryName(name);
         categoryDO.setSort(request.getSort());
         categoryDO.setStatus(request.getStatus());
