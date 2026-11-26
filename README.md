@@ -199,9 +199,11 @@ chmod +x deploy.sh
 
 脚本自动完成：环境检查 → 生成 `.env`（首次自动生成随机 JWT 密钥与数据库密码）→ 多阶段构建应用镜像 → 启动 MySQL 与应用 → 等待健康检查 → 输出访问地址。
 
+> **构建加速**：镜像构建时 Maven 依赖走阿里云仓库（`maven.aliyun.com/repository/public`），运行时 apt 包走阿里云 Ubuntu 源（`mirrors.aliyun.com`）；两者都写在 `Dockerfile` 里，无需额外配置。基础镜像仍从 Docker Hub 拉取，可在服务器上配置 Docker 镜像加速器。若服务器无法访问阿里云，删除 `Dockerfile` 中对应的 settings.xml 与 sed 替换即可回退官方源。
+
 > **重要**：镜像由当前源码构建，包含全部最新功能。服务器上旧的 `shop-admin-1.4.0.jar` 不含用户管理、系统设置、订单统计、图库分类等新增功能，请勿用旧 jar 代替源码。
 
-**前置条件**：Docker Engine 20.10+ 与 Docker Compose v2（或 docker-compose v1）；服务器可访问 Docker Hub 与 Maven 仓库。首次构建需下载依赖，约几分钟。应用端口默认 `34369`，MySQL 对宿主机暴露 `3306`。
+**前置条件**：Docker Engine 20.10+ 与 Docker Compose v2（或 docker-compose v1）；服务器可访问 Docker Hub、阿里云 Maven 仓库与阿里云 Ubuntu 镜像站。首次构建需下载依赖，约几分钟。应用端口默认 `34369`，MySQL 对宿主机暴露 `3306`。
 
 **配置**：首次运行生成 `.env`，按需修改其中 `APP_PORT`、`MYSQL_ROOT_PASSWORD`、`JWT_SECRET`、`CORS_ALLOWED_ORIGINS`、`HEALTH_TIMEOUT` 后重启生效；模板见 `.env.example`。
 

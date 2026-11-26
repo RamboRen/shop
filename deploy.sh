@@ -178,9 +178,9 @@ main() {
     prepare_env
     check_port
 
-    log_info "构建应用镜像（首次构建需下载 Maven 依赖，可能需要几分钟）..."
+    log_info "构建应用镜像（Maven 依赖已配置阿里云镜像源，首次构建可能需要几分钟）..."
     if ! compose build app; then
-        die "镜像构建失败，请查看上方 Maven 输出（常见原因：网络无法访问 Maven 仓库）。"
+        die "镜像构建失败，请查看上方输出（常见原因：网络无法访问 maven.aliyun.com 或 mirrors.aliyun.com）。"
     fi
 
     log_info "启动 MySQL 与应用容器..."
