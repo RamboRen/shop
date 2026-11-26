@@ -101,10 +101,15 @@ check_port() {
     local port
     port="$(env_value APP_PORT 34369)"
     if command -v ss >/dev/null 2>&1; then
-        ss -ltn 2>/dev/null | grep -qE "[:.]${port}[[:space:]]" && log_warn "宿主机端口 $port 已被占用，容器可能无法绑定端口。"
+        if ss -ltn 2>/dev/null | grep -qE "[:.]${port}[[:space:]]"; then
+            log_warn "宿主机端口 $port 已被占用，容器可能无法绑定端口。"
+        fi
     elif command -v netstat >/dev/null 2>&1; then
-        netstat -ltn 2>/dev/null | grep -qE "[:.]${port}[[:space:]]" && log_warn "宿主机端口 $port 已被占用，容器可能无法绑定端口。"
+        if netstat -ltn 2>/dev/null | grep -qE "[:.]${port}[[:space:]]"; then
+            log_warn "宿主机端口 $port 已被占用，容器可能无法绑定端口。"
+        fi
     fi
+    return 0
 }
 
 wait_healthy() {
