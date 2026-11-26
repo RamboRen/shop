@@ -1,0 +1,14 @@
+.idea/
+*.iml
+.vscode/
+target/
+logs/
+*.log
+
+uploads/*
+!uploads/.gitkeep
+!uploads/demo/
+!uploads/demo/*.jpg
+
+.DS_Store
+Thumbs.db

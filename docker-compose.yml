@@ -1,0 +1,62 @@
+# ============================================================
+# 商城后台管理系统 - 容器编排（MySQL + 应用）
+# 一键部署：./deploy.sh       手动部署：docker compose up -d --build
+# 配置项见 .env.example / .env；数据保存在命名卷中，重建容器不丢数据
+# ============================================================
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: shop-admin-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-shop_admin}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --default-time-zone=+08:00
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - shop-admin-mysql-data:/var/lib/mysql
+      # 仅首次初始化空数据卷时执行，已有数据不会被覆盖
+      - ./sql/shop_admin.sql:/docker-entrypoint-initdb.d/01-shop_admin.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD='${MYSQL_ROOT_PASSWORD:-root}' mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: shop-admin:local
+    container_name: shop-admin-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+      SERVER_PORT: 34369
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-shop_admin}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      JWT_SECRET: ${JWT_SECRET:?请先在 .env 中设置 JWT_SECRET}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-120}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      UPLOAD_PATH: /app/uploads
+    ports:
+      - "${APP_PORT:-34369}:34369"
+    volumes:
+      - shop-admin-uploads:/app/uploads
+
+volumes:
+  shop-admin-mysql-data:
+  shop-admin-uploads:
