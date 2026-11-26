@@ -112,6 +112,7 @@ class GalleryCategoryIntegrationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
+                            "categoryCode", code,
                                 "categoryName", name + "-改",
                                 "sort", 8,
                                 "status", 0,
@@ -255,6 +256,7 @@ class GalleryCategoryIntegrationTest {
                             .header("Authorization", "Bearer " + token)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(Map.of(
+                                "categoryCode", code,
                                     "categoryName", name, "sort", 9, "status", 0))))
                     .andExpect(status().isOk());
             mockMvc.perform(multipart("/api/admin/gallery/images")
@@ -315,6 +317,7 @@ class GalleryCategoryIntegrationTest {
                             .header("Authorization", "Bearer " + token)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(Map.of(
+                                "categoryCode", code,
                                     "categoryName", name, "sort", 9, "status", 0))))
                     .andExpect(status().isOk());
 
