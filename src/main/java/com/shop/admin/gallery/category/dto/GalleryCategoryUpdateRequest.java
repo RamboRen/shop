@@ -1,11 +1,7 @@
 package com.shop.admin.gallery.category.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,6 +14,12 @@ import lombok.Setter;
 @Setter
 @Schema(description = "修改图库分类请求")
 public class GalleryCategoryUpdateRequest {
+
+    @NotBlank(message = "分类编码不能为空")
+    @Pattern(regexp = "^[A-Z][A-Z0-9_]{1,29}$",
+        message = "分类编码须以大写字母开头，仅含大写字母、数字与下划线，长度 2 到 30 位")
+    @Schema(description = "分类编码", example = "PROMOTION")
+    private String categoryCode;
 
     @NotBlank(message = "分类名称不能为空")
     @Size(min = 2, max = 30, message = "分类名称长度必须为 2 到 30 位")
