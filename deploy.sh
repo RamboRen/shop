@@ -4,12 +4,14 @@
 #
 # 用法：
 #   chmod +x deploy.sh
-#   ./deploy.sh              # 一键部署（默认）
-#   ./deploy.sh logs         # 查看实时日志
-#   ./deploy.sh help         # 查看全部命令
+#   ./deploy.sh
 #
-# 说明：首次运行会自动创建 .env 并生成随机 JWT 密钥与数据库密码；
-#       数据库与应用上传文件保存在 Docker 命名卷中，重建容器不丢数据。
+# 运行后自动完成：
+#   环境检查 → 生成配置 → 构建镜像 → 启动容器 → 健康检查 → 输出访问信息
+#
+# 本脚本为纯一键部署，不提供子命令；日常运维请直接使用 docker compose。
+# 首次运行会自动创建 .env 并生成随机 JWT 密钥与数据库密码；
+# 数据库与应用上传文件保存在 Docker 命名卷中，重建容器不丢数据。
 # ============================================================
 set -euo pipefail
 
@@ -148,19 +150,23 @@ show_summary() {
   数据卷      : shop-admin-mysql-data / shop-admin-uploads
   CORS 白名单 : ${cors}
 
-  常用命令：
-    ./deploy.sh logs      实时查看应用日志
-    ./deploy.sh status    查看容器状态
-    ./deploy.sh restart   重启服务
-    ./deploy.sh stop      停止服务（保留数据与镜像）
-    ./deploy.sh down      移除容器（保留数据卷）
-    ./deploy.sh build     仅重新构建应用镜像
+  运维请使用原生 docker compose 命令：
+    查看日志 : docker compose logs -f app
+    查看状态 : docker compose ps
+    重启服务 : docker compose restart
+    停止服务 : docker compose stop
+    移除容器 : docker compose down     （数据卷保留）
 ============================================================
 EOF
 }
 
-# ---------- 部署主流程 ----------
-do_deploy() {
+# ---------- 一键部署主流程 ----------
+main() {
+    if [ "$#" -gt 0 ]; then
+        log_warn "本脚本为一键部署，不接受参数（已忽略：$*）"
+    fi
+
+    log_info "开始一键 Docker 部署..."
     ensure_docker
     [ -f "$SCRIPT_DIR/pom.xml" ] && [ -d "$SCRIPT_DIR/src" ] \
         || die "当前目录缺少 pom.xml 或 src，镜像需要由源码构建。请把完整项目目录上传到服务器后在根目录运行本脚本（不要只放旧的 jar）。"
@@ -173,7 +179,7 @@ do_deploy() {
     fi
 
     log_info "启动 MySQL 与应用容器..."
-    compose up -d || die "容器启动失败，请执行 ./deploy.sh logs 查看原因。"
+    compose up -d || die "容器启动失败，请执行 docker compose logs app 查看原因。"
 
     local timeout
     timeout="$(env_value HEALTH_TIMEOUT 180)"
@@ -181,68 +187,6 @@ do_deploy() {
     wait_healthy "$MYSQL_CONTAINER" "$timeout"
     wait_healthy "$APP_CONTAINER" "$timeout"
     show_summary
-}
-
-usage() {
-    cat <<'EOF'
-用法: ./deploy.sh [命令]
-
-命令:
-  deploy   (默认) 构建镜像并启动全部服务，等待健康检查通过
-  logs             实时查看应用日志（可追加 docker compose logs 参数）
-  status           查看容器运行状态
-  restart          重启服务
-  stop             停止服务（保留容器与数据）
-  down             移除容器（保留数据卷）
-  build            仅重新构建应用镜像
-  help             显示本帮助
-EOF
-}
-
-main() {
-    local cmd="${1:-deploy}"
-    case "$cmd" in
-        deploy|up|start)
-            do_deploy
-            ;;
-        logs)
-            ensure_docker
-            shift
-            compose logs -f --tail=200 "$@" app
-            ;;
-        status|ps)
-            ensure_docker
-            compose ps
-            ;;
-        restart)
-            ensure_docker
-            compose restart
-            log_ok "服务已重启"
-            ;;
-        stop)
-            ensure_docker
-            compose stop
-            log_ok "服务已停止（数据保留）"
-            ;;
-        down)
-            ensure_docker
-            compose down
-            log_ok "容器已移除（数据卷保留，下次部署数据仍在）"
-            ;;
-        build)
-            ensure_docker
-            compose build app
-            log_ok "应用镜像构建完成"
-            ;;
-        help|-h|--help)
-            usage
-            ;;
-        *)
-            log_err "未知命令：$cmd"
-            usage
-            exit 1
-            ;;
-    esac
 }
 
 main "$@"

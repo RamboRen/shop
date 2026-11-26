@@ -205,17 +205,7 @@ chmod +x deploy.sh
 
 **配置**：首次运行生成 `.env`，按需修改其中 `APP_PORT`、`MYSQL_ROOT_PASSWORD`、`JWT_SECRET`、`CORS_ALLOWED_ORIGINS`、`HEALTH_TIMEOUT` 后重启生效；模板见 `.env.example`。
 
-**常用命令**：
-
-| 命令 | 作用 |
-| --- | --- |
-| `./deploy.sh` | 一键构建并启动，等待就绪 |
-| `./deploy.sh logs` | 实时查看应用日志 |
-| `./deploy.sh status` | 查看容器状态 |
-| `./deploy.sh restart` | 重启服务 |
-| `./deploy.sh stop` | 停止服务（保留容器与数据） |
-| `./deploy.sh down` | 移除容器（保留数据卷） |
-| `./deploy.sh build` | 仅重新构建应用镜像 |
+> **纯一键脚本**：`deploy.sh` 只接受无参数运行，重复执行会重新构建并更新容器（数据卷保留）；需要查看日志、重启、停止等操作时请用原生 `docker compose` 命令，例如 `docker compose logs -f app`、`docker compose ps`、`docker compose restart`、`docker compose stop`、`docker compose down`（移除容器但保留数据卷）。
 
 **数据安全**：数据库与上传图片保存在命名卷 `shop-admin-mysql-data`、`shop-admin-uploads`；`docker compose down` 不删除卷。`sql/shop_admin.sql` 仅在数据卷首次初始化时执行，不会覆盖已有数据；升级已有库请按 4.2 的增量脚本逐个执行。
 
