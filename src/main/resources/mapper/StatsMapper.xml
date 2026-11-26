@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shop.admin.stats.mapper.StatsMapper">
+
+    <select id="selectOverview" resultType="com.shop.admin.stats.model.StatsOverviewDO">
+        SELECT
+        (SELECT COALESCE(SUM(o.total_amount), 0)
+        FROM shop_order o
+        WHERE o.deleted = 0 AND o.status IN (1, 2, 3)) AS total_sales_amount,
+        (SELECT COALESCE(SUM(o.total_amount), 0)
+        FROM shop_order o
+        WHERE o.deleted = 0 AND o.status IN (1, 2, 3)
+        AND CAST(o.create_time AS DATE) = CURRENT_DATE) AS today_sales_amount,
+        (SELECT COUNT(*)
+        FROM shop_order o
+        WHERE o.deleted = 0 AND o.status IN (1, 2, 3)) AS total_order_count,
+        (SELECT COUNT(*)
+        FROM shop_order o
+        WHERE o.deleted = 0 AND o.status IN (1, 2, 3)
+        AND CAST(o.create_time AS DATE) = CURRENT_DATE) AS today_order_count,
+        (SELECT COUNT(*)
+        FROM shop_product p
+        WHERE p.deleted = 0) AS product_count,
+        (SELECT COUNT(*)
+        FROM shop_product p
+        WHERE p.deleted = 0 AND p.status = 1) AS on_sale_product_count,
+        (SELECT COUNT(*)
+        FROM shop_product_category c
+        WHERE c.deleted = 0) AS category_count,
+        (SELECT COUNT(*)
+        FROM shop_gallery_image g
+        WHERE g.deleted = 0) AS gallery_count,
+        (SELECT COUNT(*)
+        FROM sys_admin a
+        WHERE a.deleted = 0) AS admin_count,
+        (SELECT COUNT(*)
+        FROM shop_product p
+        WHERE p.deleted = 0 AND p.stock &lt;= #{lowStockThreshold}) AS low_stock_product_count,
+        (SELECT COUNT(*)
+        FROM shop_product p
+        WHERE p.deleted = 0
+        AND CAST(p.create_time AS DATE) = CURRENT_DATE) AS today_new_product_count,
+        (SELECT COALESCE(SUM(p.sales_volume), 0)
+        FROM shop_product p
+        WHERE p.deleted = 0) AS total_sales_volume
+    </select>
+
+    <select id="selectSalesTrend" resultType="com.shop.admin.stats.model.SalesTrendDO">
+        SELECT
+        CAST(o.create_time AS DATE) AS sale_date,
+        COALESCE(SUM(o.total_amount), 0) AS sales_amount,
+        COUNT(*) AS order_count
+        FROM shop_order o
+        WHERE o.deleted = 0
+        AND o.status IN (1, 2, 3)
+        AND o.create_time &gt;= #{startTime}
+        AND o.create_time &lt; #{endTime}
+        GROUP BY CAST(o.create_time AS DATE)
+        ORDER BY sale_date ASC
+    </select>
+
+    <select id="selectCategoryDistribution" resultType="com.shop.admin.stats.model.CategoryStatDO">
+        SELECT
+        c.name AS category_name,
+        COUNT(p.id) AS product_count
+        FROM shop_product_category c
+        LEFT JOIN shop_product p
+        ON p.category_id = c.id AND p.deleted = 0
+        WHERE c.deleted = 0
+        GROUP BY c.id, c.name, c.sort
+        ORDER BY product_count DESC, c.sort ASC
+    </select>
+
+    <select id="selectTopProducts" resultType="com.shop.admin.stats.model.TopProductDO">
+        SELECT
+        p.id AS product_id,
+        p.name AS product_name,
+        p.price AS price,
+        COALESCE(p.sales_volume, 0) AS sales_volume,
+        p.stock AS stock
+        FROM shop_product p
+        WHERE p.deleted = 0
+        ORDER BY p.sales_volume DESC, p.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectOrderStatusStats" resultType="com.shop.admin.stats.model.OrderStatusStatDO">
+        SELECT
+        o.status AS status,
+        COUNT(*) AS order_count,
+        COALESCE(SUM(o.total_amount), 0) AS total_amount,
+        COALESCE(SUM(o.pay_amount), 0) AS pay_amount
+        FROM shop_order o
+        WHERE o.deleted = 0
+        <if test="startTime != null">
+            AND o.create_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND o.create_time &lt; #{endTime}
+        </if>
+        GROUP BY o.status
+        ORDER BY o.status ASC
+    </select>
+
+    <select id="selectPayTypeStats" resultType="com.shop.admin.stats.model.PayTypeStatDO">
+        SELECT
+        o.pay_type AS pay_type,
+        COUNT(*) AS order_count,
+        COALESCE(SUM(o.pay_amount), 0) AS pay_amount
+        FROM shop_order o
+        WHERE o.deleted = 0
+        <if test="startTime != null">
+            AND o.create_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND o.create_time &lt; #{endTime}
+        </if>
+        GROUP BY o.pay_type
+        ORDER BY o.pay_type ASC
+    </select>
+
+</mapper>

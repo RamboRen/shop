@@ -1,0 +1,14 @@
+# 构建上下文排除项（减小镜像构建体积、避免把本地密钥打进镜像）
+target/
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+*.log
+logs/
+uploads/
+.workbuddy/
+.env
+.env.*
+!.env.example
