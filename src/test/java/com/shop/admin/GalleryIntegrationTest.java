@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -115,6 +116,78 @@ class GalleryIntegrationTest {
                 .andExpect(jsonPath("$.code").value(400));
 
         for (long imageId : uploadedIds) {
+            mockMvc.perform(delete("/api/admin/gallery/images/" + imageId)
+                    .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    void shouldRenameImage() throws Exception {
+        String token = obtainAdminToken();
+        MvcResult uploadResult = mockMvc.perform(multipart("/api/admin/gallery/images")
+                        .file(new MockMultipartFile("file", "rename-before.png", "image/png", createPngBytes()))
+                        .param("categoryCode", "PRODUCT")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode uploadResponse = objectMapper.readTree(uploadResult.getResponse().getContentAsString());
+        long imageId = uploadResponse.path("data").path("id").asLong();
+        String originalUrl = uploadResponse.path("data").path("url").asText();
+
+        try {
+            // 改名成功，返回新名称，URL 与存储文件名不变
+            mockMvc.perform(put("/api/admin/gallery/images/" + imageId + "/name")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(
+                                    Map.of("originalName", "首页主图.png")))
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value(200))
+                    .andExpect(jsonPath("$.data.id").value(imageId))
+                    .andExpect(jsonPath("$.data.originalName").value("首页主图.png"))
+                    .andExpect(jsonPath("$.data.url").value(originalUrl))
+                    .andExpect(jsonPath("$.data.imageGroupName").value("商品图"));
+
+            // 改后按新名称关键字能搜到
+            mockMvc.perform(get("/api/admin/gallery/images")
+                            .header("Authorization", "Bearer " + token)
+                            .param("keyword", "首页主图"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.records[0].id").value(imageId))
+                    .andExpect(jsonPath("$.data.records[0].originalName").value("首页主图.png"));
+
+            // 名称中的路径前缀被清洗
+            mockMvc.perform(put("/api/admin/gallery/images/" + imageId + "/name")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(
+                                    Map.of("originalName", "C:\\fake\\path\\clean-name.png")))
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.originalName").value("clean-name.png"));
+
+            // 空名称校验失败
+            mockMvc.perform(put("/api/admin/gallery/images/" + imageId + "/name")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of("originalName", "   ")))
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value(400));
+
+            // 不存在的图片 404
+            mockMvc.perform(put("/api/admin/gallery/images/99999999/name")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of("originalName", "whatever.png")))
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value(404));
+
+            // 未认证 401
+            mockMvc.perform(put("/api/admin/gallery/images/" + imageId + "/name")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of("originalName", "no-auth.png"))))
+                    .andExpect(status().isUnauthorized());
+        } finally {
             mockMvc.perform(delete("/api/admin/gallery/images/" + imageId)
                     .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk());

@@ -57,7 +57,9 @@ RUN set -eu; \
 WORKDIR /app
 
 COPY --from=builder /build/target/shop-admin-*.jar /app/app.jar
-RUN chown app:app /app/app.jar
+# 初始化 SQL 引用的 demo 示例图；若使用已存在的上传卷，需在宿主机卷中补入这些文件
+COPY uploads/demo /app/uploads/demo
+RUN chown -R app:app /app
 
 USER app
 

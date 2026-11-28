@@ -7,7 +7,11 @@ target/
 *.iml
 *.log
 logs/
-uploads/
+# 上传目录整体排除，但保留初始化 SQL 引用的 demo 示例图，否则 Docker 部署后这些图片 404
+uploads/*
+!uploads/demo/
+uploads/demo/*
+!uploads/demo/*.jpg
 .workbuddy/
 .env
 .env.*

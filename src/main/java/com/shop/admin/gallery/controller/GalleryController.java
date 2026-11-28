@@ -3,6 +3,7 @@ package com.shop.admin.gallery.controller;
 import com.shop.admin.common.api.ApiResult;
 import com.shop.admin.common.api.PageResult;
 import com.shop.admin.gallery.dto.GalleryBatchDeleteRequest;
+import com.shop.admin.gallery.dto.GalleryImageRenameRequest;
 import com.shop.admin.gallery.dto.GalleryQueryRequest;
 import com.shop.admin.gallery.service.GalleryService;
 import com.shop.admin.gallery.vo.GalleryImageVO;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -85,6 +87,21 @@ public class GalleryController {
             @PathVariable String categoryCode,
             @Valid @ParameterObject GalleryQueryRequest request) {
         return ApiResult.success(galleryService.pageImagesByCategory(categoryCode, request));
+    }
+
+    /**
+     * 修改图片名称。
+     *
+     * @param id      图片编号
+     * @param request 修改请求
+     * @return 修改后的图片信息
+     */
+    @PutMapping("/images/{id}/name")
+    @Operation(summary = "修改图片名称",
+            description = "仅修改展示名称 originalName，不改变存储文件名与访问地址")
+    public ApiResult<GalleryImageVO> renameImage(@PathVariable Long id,
+                                                 @Valid @RequestBody GalleryImageRenameRequest request) {
+        return ApiResult.success(galleryService.renameImage(id, request));
     }
 
     /**

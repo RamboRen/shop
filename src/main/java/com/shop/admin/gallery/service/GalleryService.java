@@ -2,6 +2,7 @@ package com.shop.admin.gallery.service;
 
 import com.shop.admin.common.api.PageResult;
 import com.shop.admin.gallery.dto.GalleryQueryRequest;
+import com.shop.admin.gallery.dto.GalleryImageRenameRequest;
 import com.shop.admin.gallery.vo.GalleryImageVO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,6 +40,15 @@ public interface GalleryService {
      * @return 图片分页结果
      */
     PageResult<GalleryImageVO> pageImagesByCategory(String categoryCode, GalleryQueryRequest request);
+
+    /**
+     * 修改图片名称，仅修改展示名称，不改动存储文件名与访问地址。
+     *
+     * @param id      图片编号
+     * @param request 修改请求
+     * @return 修改后的图片信息
+     */
+    GalleryImageVO renameImage(Long id, GalleryImageRenameRequest request);
 
     /**
      * 删除图片。

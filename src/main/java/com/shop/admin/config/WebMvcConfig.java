@@ -2,6 +2,7 @@ package com.shop.admin.config;
 
 import com.shop.admin.common.constant.SecurityConstants;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -14,6 +15,7 @@ import java.nio.file.Paths;
  *
  * @author shop-admin
  */
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -30,5 +32,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addResourceHandler(SecurityConstants.UPLOAD_PATH_PATTERN)
                 .addResourceLocations(resourceLocation)
                 .setCachePeriod(3600);
+        log.info("图片静态资源映射：{} -> {}（上传目录：{}）",
+                SecurityConstants.UPLOAD_PATH_PATTERN, resourceLocation, uploadRoot);
     }
 }

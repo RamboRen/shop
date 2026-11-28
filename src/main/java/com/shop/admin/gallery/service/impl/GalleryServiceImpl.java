@@ -9,6 +9,7 @@ import com.shop.admin.common.exception.BusinessException;
 import com.shop.admin.config.UploadProperties;
 import com.shop.admin.gallery.category.entity.GalleryCategoryDO;
 import com.shop.admin.gallery.category.service.GalleryCategoryService;
+import com.shop.admin.gallery.dto.GalleryImageRenameRequest;
 import com.shop.admin.gallery.dto.GalleryQueryRequest;
 import com.shop.admin.gallery.entity.GalleryImageDO;
 import com.shop.admin.gallery.mapper.GalleryImageMapper;
@@ -169,6 +170,23 @@ public class GalleryServiceImpl implements GalleryService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public GalleryImageVO renameImage(Long id, GalleryImageRenameRequest request) {
+        GalleryImageDO imageDO = getRequiredImage(id);
+        String newName = sanitizeRenamedName(request.getOriginalName());
+        GalleryImageDO updateDO = new GalleryImageDO();
+        updateDO.setId(id);
+        updateDO.setOriginalName(newName);
+        if (galleryImageMapper.updateById(updateDO) != 1) {
+            throw new BusinessException(500, "修改图片名称失败");
+        }
+        imageDO.setOriginalName(newName);
+        log.info("修改图片名称成功，图片编号: {}, 新名称: {}", id, newName);
+        return GalleryImageVO.from(imageDO,
+                galleryCategoryService.getAllCategoryNames().get(imageDO.getImageGroup()));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteImage(Long id) {
         GalleryImageDO imageDO = getRequiredImage(id);
         if (galleryImageMapper.deleteById(id) != 1) {
@@ -266,6 +284,28 @@ public class GalleryServiceImpl implements GalleryService {
             sanitized = sanitized.substring(0, MAX_ORIGINAL_NAME_LENGTH);
         }
         return sanitized;
+    }
+
+    /**
+     * 清洗修改后的名称：去掉路径前缀与控制字符，限制长度。
+     * DTO 层已校验非空，这里仍做兜底防止服务层被直接调用时存入空名称。
+     */
+    private String sanitizeRenamedName(String name) {
+        if (!StringUtils.hasText(name)) {
+            throw new BusinessException(400, "图片名称不能为空");
+        }
+        String normalized = name.replace('\\', '/');
+        int lastSlashIndex = normalized.lastIndexOf('/');
+        if (lastSlashIndex >= 0) {
+            normalized = normalized.substring(lastSlashIndex + 1);
+        }
+        String sanitized = normalized.replaceAll("\\p{Cntrl}", "").trim();
+        if (!StringUtils.hasText(sanitized)) {
+            throw new BusinessException(400, "图片名称不能为空");
+        }
+        return sanitized.length() > MAX_ORIGINAL_NAME_LENGTH
+                ? sanitized.substring(0, MAX_ORIGINAL_NAME_LENGTH)
+                : sanitized;
     }
 
     private Path resolveSafePath(String relativePath) {
